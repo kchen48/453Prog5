@@ -55,6 +55,10 @@ struct fileent{
 #define MIN_MAGIC_OLD 0x2468 /* v2 minix magic number */
 #define MIN_MAGIC_REV_OLD 0x6824 /* v2 magic number reversed */
 
+#define LENPERMS 11
+#define LENBLOCKS 1024
+#define LENSECTORS 512
+
 #define MIN_ISREG(m) (((m)&0170000)==0100000)
 #define MIN_ISDIR(m) (((m)&0170000)==0040000)
 #define MIN_IRUSR 0400
@@ -67,3 +71,59 @@ struct fileent{
 #define MIN_IWOTH 0002
 #define MIN_IXOTH 0001
 
+struct f{
+   struct inode node;
+   struct fileent ent;
+   uint8_t *cont;
+   struct *fileent ents;
+   int numEnts;
+   char *path;
+}
+
+struct info {
+   char *image;
+   char *src;
+   char *dstpath;
+   int part;
+   int sub;
+   int verbose;
+   FILE *f;
+   long place;
+   long zonesize;
+   struct superblock superBlock;
+};
+
+struct pt {
+   uint8_t bootind;
+   uint8_t start_head;
+   uint8_t start_sec;
+   uint8_t start_cyl;
+   uint8_t type;
+   uint8_t end_head;
+   uint8_t end_sec;
+   uint8_t end_cyl;
+   uint32_t lFirst;
+   uint32_t size;
+};
+
+int checkFlag(char*, int, char**);
+void partAndSubpart(struct info*);
+void superBlock(struct info*);
+void findInode(struct info*, struct inode*, uint32_t);
+void getInodePath(struct info*, char*);
+void getInodeReg(struct info*, char*, uint32_t);
+struct f* findFilePath(struct info*, char*);
+struct f* openFile(struct info*, uint32_t);
+void loadFile(struct info*, struct f*);
+void loadDirectory(struct info*, struct f*);
+void openImg(struct info*);
+void closeImg(struct info*);
+void freeFile(struct f*);
+void printPermissions(uint16_t);
+void printInode(struct inode*);
+
+void printSuperBlock(struct superblock *superBlock){
+}
+
+void printPT(struct pt *partTable){
+}
