@@ -1,5 +1,5 @@
 C = gcc
-CFLAGS = -Wall -ansi -pedantic -g
+CFLAGS = -ansi -pedantic -g
 all: minget minls
 
 min.o: min.c min.h

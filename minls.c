@@ -54,11 +54,20 @@ int main(int argc, char *argv[]){
 
    countargs++;
    imgInfo.image = argv[countargs];
+
    countargs++;
    if (countargs+2 == argc){
       countargs++;
       imgInfo.src = argv[countargs];
    }
+
+   imgInfo.place = 0;
+   openImg(&imgInfo);
+   partAndSubpart(&imgInfo);
+   superBlock(&imgInfo);
+   printFile(&imgInfo);
+   fclose(imgInfo.f);
+
    return 0;
 }
 

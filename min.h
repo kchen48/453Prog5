@@ -20,6 +20,7 @@ struct superblock {
 };
 
 #define DIRECT_ZONES 7
+#define LENFILENAMES 60
 
 struct inode {
    uint16_t mode;
@@ -58,6 +59,8 @@ struct fileent{
 #define LENPERMS 11
 #define LENBLOCKS 1024
 #define LENSECTORS 512
+#define SIGBYTE510 510
+#define SIGBYTE511 511
 
 #define MIN_ISREG(m) (((m)&0170000)==0100000)
 #define MIN_ISDIR(m) (((m)&0170000)==0040000)
@@ -75,10 +78,10 @@ struct f{
    struct inode node;
    struct fileent ent;
    uint8_t *cont;
-   struct *fileent ents;
+   struct fileent *ents;
    int numEnts;
    char *path;
-}
+};
 
 struct info {
    char *image;
@@ -108,22 +111,22 @@ struct pt {
 
 int checkFlag(char*, int, char**);
 void partAndSubpart(struct info*);
+void partition(struct info*);
+void subpartition(struct info*);
 void superBlock(struct info*);
 void findInode(struct info*, struct inode*, uint32_t);
-void getInodePath(struct info*, char*);
-void getInodeReg(struct info*, char*, uint32_t);
+uint32_t getInodePath(struct info*, char*);
+uint32_t getInodeReg(struct info*, char*, uint32_t);
 struct f* findFilePath(struct info*, char*);
 struct f* openFile(struct info*, uint32_t);
 void loadFile(struct info*, struct f*);
 void loadDirectory(struct info*, struct f*);
 void openImg(struct info*);
-void closeImg(struct info*);
 void freeFile(struct f*);
 void printPermissions(uint16_t);
 void printInode(struct inode*);
-
-void printSuperBlock(struct superblock *superBlock){
-}
-
-void printPT(struct pt *partTable){
-}
+void printSuperBlock(struct superblock*);
+void printPT(struct pt*);
+void printEnts(struct info*, struct fileent*);
+void printFile(struct info*);
+void writeOut(struct info*);

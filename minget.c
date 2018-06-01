@@ -56,18 +56,19 @@ int main(int argc, char *argv[]){
    imgInfo.image = argv[countargs];
    countargs++;
    imgInfo.src = argv[countargs];
+   printf("src is %s\n", imgInfo.src);
    if (countargs+2 == argc){
       countargs++;
       imgInfo.dstpath = argv[countargs];
    }
-   
+  
+   imgInfo.place = 0;
 
-
-
-   
-
-
-
+   openImg(&imgInfo);
+   partAndSubpart(&imgInfo);
+   superBlock(&imgInfo);
+   writeOut(&imgInfo);
+   fclose(imgInfo.f);
    
    return 0;
 }
