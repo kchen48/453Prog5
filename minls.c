@@ -56,9 +56,11 @@ int main(int argc, char *argv[]){
    imgInfo.image = argv[countargs];
 
    countargs++;
-   if (countargs+2 == argc){
-      countargs++;
+
+   imgInfo.src = "/";
+   if (countargs+1 == argc){
       imgInfo.src = argv[countargs];
+      printf("setting src: %s\n", imgInfo.src);
    }
 
    imgInfo.place = 0;

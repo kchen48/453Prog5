@@ -57,8 +57,8 @@ int main(int argc, char *argv[]){
    countargs++;
    imgInfo.src = argv[countargs];
    printf("src is %s\n", imgInfo.src);
-   if (countargs+2 == argc){
-      countargs++;
+   countargs++;
+   if (countargs+1 == argc){
       imgInfo.dstpath = argv[countargs];
    }
   

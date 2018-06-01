@@ -144,18 +144,19 @@ void findInode(struct info *imgInfo, struct inode *node, uint32_t num){
 uint32_t getInodePath(struct info *imgInfo, char *path){
    size_t s = strlen(path);
    uint32_t i;
-   char *path_copy = NULL;
 
    /* if path */
    if (s > 1){
       /* copy over */
-      path_copy = (char*) malloc (s);
+      char *path_copy = (char*) malloc (s);
       strcpy(path_copy, path+1);
       /* get inode with path */
+      printf("path copy: %s\n", path_copy);
       i = getInodeReg(imgInfo, path_copy, 1);
       free(path_copy);
    }
    else{
+      printf("i is one\n");
       i = 1;
    }
 
@@ -169,30 +170,40 @@ uint32_t getInodeReg(struct info *imgInfo, char *path, uint32_t i){
    int i2;
    int total;
 
+   /* opens file and gets entries */
    struct f *fil = openFile(imgInfo, i);
    struct fileent *ent = fil->ents;
 
+   /* null terminate */
    if ((point=strstr(path, "/"))){
      *point++ = '\0';
    }
    filename[LENFILENAMES] = '\0';
 
+   /* copy over entry name */
    total = fil->node.size/sizeof(struct fileent);
-   for (i2=0; i2<total; i2++){
+   for (i2=0; i2<total; ++i2, ++ent){
       memcpy(filename, ent->name, LENFILENAMES);
-      ent++;
+      printf("ent name: %s\n", ent->name);
       if (!strcmp(path, filename)){
          break;
       }
    }
 
+   printf("filename: %s\n", filename);
    if (i2==total){
       freeFile(fil);
+      return -1;
    }
-   if (point){
-      if (*point){
+
+   i = ent->ino;
+   freeFile(fil);
+   
+   /* gets next inode */
+   if (point&&*point){
+         printf("gets next one\n");
+         printf("point name: %s\n", point);
          return getInodeReg(imgInfo, point, i);
-      }
    }
    return i;
 }
@@ -212,6 +223,8 @@ struct f* findFilePath(struct info *imgInfo, char *path){
       fil->path = (char*) malloc(strlen(path));
       strcpy(fil->path, path);
    }
+
+   printf("filepath before getInodePAth: %s\n", fil->path);
    
    i = getInodePath(imgInfo, fil->path);
    if (!i){
@@ -219,24 +232,32 @@ struct f* findFilePath(struct info *imgInfo, char *path){
       return NULL;
    }
 
+   /* move to correct inode place and set up file struct */
    findInode(imgInfo, &fil->node, i);
    fil->cont = NULL;
    fil->ents = NULL;
    fil->numEnts =0;
 
+   /* if directory */
    if (MIN_ISDIR(fil->node.mode)){
       loadDirectory(imgInfo, fil);
+      printf("is directory!\n");
    }
+   printf("filepath: %s\n", fil->path);
    return fil;
 }
 
 struct f* openFile(struct info *imgInfo, uint32_t i){
    struct f *fil = (struct f*) malloc(sizeof(struct f));
+   
+   /* move to correct place and set up file struct */
    findInode(imgInfo, &fil->node, i);
    fil->cont = NULL;
    fil->ents = NULL;
    fil->path = NULL;
    fil->numEnts = 0;
+
+   /* if directory */
    if (MIN_ISDIR(fil->node.mode)){
       loadDirectory(imgInfo, fil);
    }
@@ -248,25 +269,27 @@ struct f* openFile(struct info *imgInfo, uint32_t i){
 void loadFile(struct info *imgInfo, struct f *file){
    long s = file->node.size;
    if (s){
-
       uint8_t *point;
       uint8_t *hold;
       int i;
       long move, offset;
+
+      printf("loadFile's file name: %s\n", file->path);
+      /* goes through zonesize and puts into file contents */
       hold = (uint8_t*) malloc(imgInfo->zonesize);
       file->cont = (uint8_t*)malloc(s);
       point = file->cont;
 
-      for (i=0; i< DIRECT_ZONES; i++){
-         if (s <= 0){
-            break;
-         }
-         if (s < imgInfo->zonesize){
+      for (i=0; i< DIRECT_ZONES && s>0; i++){
+      /*   if (s < imgInfo->zonesize){
             move=s;
          }
          else{
             move=imgInfo->zonesize;
-         }
+         }*/
+
+         move = s < imgInfo->zonesize ? s : imgInfo->zonesize;
+         /* move to next zone */
          if (file->node.zone[i]){
             offset = imgInfo->place+imgInfo->zonesize*file->node.zone[i];
             fseek(imgInfo->f, offset, SEEK_SET);
@@ -290,16 +313,18 @@ void loadDirectory(struct info *imgInfo, struct f *direct){
    int i;
 
    loadFile(imgInfo, direct);
+
+   printf("direct path: %s\n", direct->path);
+   /* get entries */
    if (direct->cont){
+      printf("LOOKING THRU DIRECTORY\n");
       struct fileent *point, *entry = (struct fileent*) direct->cont;
       direct->numEnts = direct->node.size/sizeof(struct fileent);
       direct->ents = (struct fileent*)malloc(direct->numEnts * sizeof(struct fileent));
       
-      point = direct->ents;
-      for (i=0; i <direct->numEnts; i++){
+      for (i=0, point=direct->ents; i <direct->numEnts; ++i, ++point, ++entry){
          *point = *entry;
-         point++;
-         entry++;
+         printf("LOOPING LOOKING\n");
       }
    }
 }
@@ -375,8 +400,9 @@ void printInode(struct inode *i){
    printf("  unsigned long  ctime %13u\t--- %s\n", i->ctime, filenames);
    
    printf("\n  Direct zones:\n");
-   for (i2 = 0; i2 < DIRECT_ZONES; i2++)
+   for (i2 = 0; i2 < DIRECT_ZONES; i2++){
       printf("              zone[%d]   = %10u\n", i2, i->zone[i2]);
+   }
 
    printf("  unsigned long  indirect %10u\n", i->indirect);
    printf("  unsigned long  double %12u\n", i->unused);
@@ -419,6 +445,8 @@ void printPT(struct pt *partTable){
 void printEnts(struct info *imgInfo, struct fileent *ent){
    char *name = (char*) malloc(LENFILENAMES +1);
    struct inode i;
+
+   /* moves to right place and copies name to print */
    findInode(imgInfo, &i, ent->ino);
    memcpy(name, ent->name, LENFILENAMES);
    name[LENFILENAMES] = '\0';
@@ -432,13 +460,14 @@ void printFile(struct info *imgInfo){
    struct fileent *ent;
    int i;
 
-   fil = findFilePath(imgInfo, imgInfo->image);
+   printf("printing for: %s\n", imgInfo->src);
+   fil = findFilePath(imgInfo, imgInfo->src);
    if (fil){
       if (imgInfo->verbose != -1){
          printInode(&fil->node);
       }
       if (fil->ents){
-         printf("%s:\n", imgInfo->image);
+         printf("%s:\n", imgInfo->src);
          ent = fil->ents;
          for (i=0; i<fil->numEnts; i++){
             if (ent->ino){
@@ -454,7 +483,7 @@ void printFile(struct info *imgInfo){
       freeFile(fil);
    }
    else{
-      printf("File not found: %s\n", imgInfo->image);
+      printf("File not found: %s\n", imgInfo->src);
       fclose(imgInfo->f);
       exit(-1);
    }
@@ -472,12 +501,14 @@ void writeOut(struct info *imgInfo){
          exit(-1);
       }
       loadFile(imgInfo, fil);
+      printf("dstpath: %s\n", imgInfo->dstpath);
       if (imgInfo->dstpath){
          f = fopen(imgInfo->dstpath, "wb");
          if (!f){
             printf("Cannot open file for output\n");
             freeFile(fil);
             fclose(imgInfo->f);
+            exit(-1);
          }
          fwrite(fil->cont, fil->node.size, 1, f);
          fclose(f);
