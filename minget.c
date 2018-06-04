@@ -16,13 +16,15 @@ int main(int argc, char *argv[]){
 
    struct info imgInfo;
 
+
    if ((argc == 1) || (checkFlag("-h", argc, argv)!=-1)){
-      printf("usage: minget [ -v ] [ -p num [ -s num] ] imagefile srcpath [ dstpath ]\n\
-      Options:\n\
-      -p part    --- select partition for filsystem (default: none)\n\
-      -s sub     --- select subpartition for filesystem (default: none)\n\
-      -h help    --- print usage information and exit\n\
-      -v verbose --- increase verbosity level\n");
+      printf("usage: minls [ -v ] [ -p num [ -s num] ] imagefile [ path ]\n");
+      printf("Options:\n");
+      printf("-p part    --- select partition for filsystem (default: none)\n");
+      printf("-s sub     --- select subpartition ");
+      printf("for filesystem (default: none)\n");
+      printf("-h help    --- print usage information and exit\n");
+      printf("-v verbose --- increase verbosity level\n");
       return 0;
    }
 
@@ -54,14 +56,18 @@ int main(int argc, char *argv[]){
 
    countargs++;
    imgInfo.image = argv[countargs];
+   
+   if (!imgInfo.image){
+      exit(1);
+   }
+
    countargs++;
    imgInfo.src = argv[countargs];
-   printf("src is %s\n", imgInfo.src);
    countargs++;
    if (countargs+1 == argc){
       imgInfo.dstpath = argv[countargs];
    }
-  
+
    imgInfo.place = 0;
 
    openImg(&imgInfo);
@@ -69,6 +75,7 @@ int main(int argc, char *argv[]){
    superBlock(&imgInfo);
    writeOut(&imgInfo);
    fclose(imgInfo.f);
-   
+   printf("\n");
+
    return 0;
 }

@@ -130,3 +130,4 @@ void printPT(struct pt*);
 void printEnts(struct info*, struct fileent*);
 void printFile(struct info*);
 void writeOut(struct info*);
+void* checked_malloc(size_t);
