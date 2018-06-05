@@ -271,13 +271,11 @@ struct f* openFile(struct info *imgInfo, uint32_t i){
 
 void loadFile(struct info *imgInfo, struct f *file){
    long s = file->node.size;
-   printf ("SIZE: %d\n", s);
-   printf("LOADING FILE: %s\n", file->path);
 
    if (s){
       uint8_t *point;
       uint8_t *hold;
-      int i;
+      int i, j;
       long move, offset;
 
       /* goes through zonesize and puts into file contents */
@@ -285,19 +283,21 @@ void loadFile(struct info *imgInfo, struct f *file){
       file->cont = (uint8_t*)checked_malloc(s);
       point = file->cont;
 
+      /* direct zones */
       for (i=0; i< DIRECT_ZONES && s>0; i++){
          if (s < imgInfo->zonesize){
             move=s;
          }
          else{
-            printf("setting move to zonesize\n");
             move=imgInfo->zonesize;
          }
 
          /* move to next zone */
          if (file->node.zone[i]){
             offset = imgInfo->place+imgInfo->zonesize*file->node.zone[i];
+            /*printf("node.zone[%d]: %d\n", i, file->node.zone[i]);*/
             fseek(imgInfo->f, offset, SEEK_SET);
+            /*printf("OFFSET: %d\n", offset);*/
             fread((void*)hold, move, 1, imgInfo->f);
             memcpy(point, hold, move);
          }
@@ -307,22 +307,73 @@ void loadFile(struct info *imgInfo, struct f *file){
          s -= imgInfo->zonesize;
          point += imgInfo->zonesize;
       } 
-     /*
-      printf("S AFTER COPYING: %d\n", s);
-      if (s > 0){
-         if (s < LENBLOCKS){
-            move = s;
+
+      /* indirect zone, FIX HOLES */
+      if (s>0){
+         if (file->node.indirect){
+            for (i=0; i< DIRECT_ZONES && s>0; i++){
+               if (s < imgInfo->zonesize){
+                  move = s;
+               }
+               else{
+                  move= imgInfo->zonesize;
+               }
+               if (imgInfo->zonesize*file->node.indirect+i){
+                  if (i >= 1){
+                     offset = imgInfo->place;
+                     offset+=imgInfo->zonesize*file->node.indirect;
+                  }
+                  else{
+                     offset = offset+imgInfo->zonesize;
+                  }
+                  fseek(imgInfo->f, offset+(imgInfo->zonesize*i), SEEK_SET);
+                  /*printf("i: %d\n", i);*/
+                  fread((void*)hold, move, 1, imgInfo->f);
+                  memcpy(point, hold, move);
+               }
+               else{
+                  memset(point, 0, move);
+               }
+               s -= imgInfo->zonesize;
+               point += imgInfo->zonesize;
+            }
          }
          else{
-            move= LENBLOCKS;
+            memset(point, 0, move);
          }
-         fseek(imgInfo->f, LENBLOCKS, SEEK_CUR);
-         fread((void*)hold, move, 1, imgInfo->f);
-         memcpy(point, hold, move);
-         s -= LENBLOCKS;
-         point += LENBLOCKS;
       }
-      */
+
+      /* FIX: double indirect zone :( 
+      if (s>0){
+         long two_offset = offset+imgInfo->zonesize;
+         long two_offset2;
+         while (s>0){
+            for (i=0; i< DIRECT_ZONES && s>0; i++){
+               if (s < imgInfo->zonesize){
+                  move = s;
+               }
+               else{
+                  move= imgInfo->zonesize;
+               }
+               two_offset2 = imgInfo->place+two_offset+(imgInfo->zonesize*i);
+               if (two_offset2){
+                  fseek(imgInfo->f, two_offset2, SEEK_SET);
+                  fread((void*)hold, move, 1, imgInfo->f);
+                  memcpy(point, hold, move);
+               }
+               else{
+                  memset(point, 0, move);
+               }
+               s -= imgInfo->zonesize;
+               point += imgInfo->zonesize;
+            }
+            two_offset += imgInfo->zonesize;
+         }
+         
+      }*/
+
+
+
       free(hold);
    }
    else {
@@ -340,14 +391,14 @@ void loadDirectory(struct info *imgInfo, struct f *direct){
       /* goes through directory for entries */
       struct fileent *point, *entry = (struct fileent*) direct->cont;
       direct->numEnts = direct->node.size/sizeof(struct fileent);
-      printf("number of dir entries: %d\n", direct->numEnts);
+      /*printf("number of dir entries: %d\n", direct->numEnts);*/
       size = direct->numEnts * sizeof(struct fileent);
       direct->ents = (struct fileent*)checked_malloc(size);
-      
+
       point=direct->ents;
       for (i=0; i <direct->numEnts; i++){
          *point = *entry;
-         printf("entry loaded: %s\n", point->name);
+         /*  printf("entry loaded: %s\n", point->name);*/
          point++;
          entry++;
       }
@@ -431,7 +482,7 @@ void printInode(struct inode *i){
    }
 
    printf("  unsigned long  indirect %10u\n", i->indirect);
-   printf("  unsigned long  double %12u\n", i->unused);
+   printf("  unsigned long  double %12u\n", i->two_indirect);
 }
 
 void printSuperBlock(struct superblock *superBlock){
@@ -454,16 +505,16 @@ void printSuperBlock(struct superblock *superBlock){
 void printPT(struct pt *partTable){
    int i;
    for (i = 0; i < 4; i++) {
-      printf("boot 0x%02x\n", partTable->bootind);
-      printf("head %4u\n", partTable->start_head);
+      printf("boot      0x%02x\n", partTable->bootind);
+      printf("head      %4u\n", partTable->start_head);
       printf("start sec %4u\n", partTable->start_sec);
       printf("start cyl %4u\n", partTable->start_cyl);
-      printf("type 0x%02x\n", partTable->type);
-      printf("head %4u\n", partTable->end_head);
-      printf("end sec %4u\n", partTable->end_sec);
-      printf("end cyl %4u\n", partTable->end_cyl);
-      printf("lFirst%10u\n", partTable->lFirst);
-      printf("size %10u\n", partTable->size);
+      printf("type      0x%02x\n", partTable->type);
+      printf("head      %4u\n", partTable->end_head);
+      printf("end sec   %4u\n", partTable->end_sec);
+      printf("end cyl   %4u\n", partTable->end_cyl);
+      printf("lFirst    %10u\n", partTable->lFirst);
+      printf("size      %10u\n", partTable->size);
       partTable++;
    }
 }

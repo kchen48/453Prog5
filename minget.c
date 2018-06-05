@@ -75,7 +75,6 @@ int main(int argc, char *argv[]){
    superBlock(&imgInfo);
    writeOut(&imgInfo);
    fclose(imgInfo.f);
-   printf("\n");
 
    return 0;
 }
