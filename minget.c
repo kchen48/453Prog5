@@ -16,7 +16,6 @@ int main(int argc, char *argv[]){
 
    struct info imgInfo;
 
-
    if ((argc == 1) || (checkFlag("-h", argc, argv)!=-1)){
       printf("usage: minls [ -v ] [ -p num [ -s num] ] imagefile [ path ]\n");
       printf("Options:\n");

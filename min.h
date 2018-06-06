@@ -59,6 +59,7 @@ struct fileent{
 #define LENPERMS 11
 #define LENBLOCKS 1024
 #define LENSECTORS 512
+#define LENPTS 4
 #define SIGBYTE510 510
 #define SIGBYTE511 511
 
