@@ -196,11 +196,8 @@ uint32_t getInodeReg(struct info *imgInfo, char *path, uint32_t i){
 
    /* copy over entry name */
    total = fil->node.size/sizeof(struct fileent);
-   /*   printf("total: %d\n", total); */
 
-   /*printf("looking for: %s\n", path);*/
    for (i2=0; i2<total; i2++, ent++){
-      /* printf("ent: %s\n", ent->name);*/
       memcpy(filename, ent->name, LENFILENAMES);
       if (!strcmp(path, filename)){
          break;
@@ -323,7 +320,8 @@ void loadFile(struct info *imgInfo, struct f *file){
       if (s>0){
          if (file->node.indirect){
             /* copy over zone numbers to get real zones */
-            uint32_t *curr_zone = checked_malloc(sizeof(uint32_t)*imgInfo->zonesize);
+            uint32_t *curr_zone=
+               checked_malloc(sizeof(uint32_t)*imgInfo->zonesize);
             fseek(imgInfo->f,
                   imgInfo->place+file->node.indirect*imgInfo->zonesize,
                   SEEK_SET);
@@ -372,7 +370,8 @@ void loadFile(struct info *imgInfo, struct f *file){
             /* copy over zone numbers to get zone numbers to get zones */
             uint32_t *curr_zone_two = 
                checked_malloc(sizeof(uint32_t)*imgInfo->zonesize);
-            uint32_t *di_zone = checked_malloc(sizeof(uint32_t)*imgInfo->zonesize);
+            uint32_t *di_zone=
+               checked_malloc(sizeof(uint32_t)*imgInfo->zonesize);
             fseek(imgInfo->f,
                   imgInfo->place+file->node.two_indirect*imgInfo->zonesize,
                   SEEK_SET);
@@ -518,7 +517,6 @@ void printInode(struct inode *i){
    printf("  unsigned short uid %15u\n", i->uid);
    printf("  unsigned short gid %15u\n", i->gid);
    printf("  unsigned long  size %14u\n", i->size);
-
    t = i->atime;
    strftime(filenames, LENFILENAMES, "%a %b %e %T %Y", localtime(&t));
    printf("  unsigned long atime  %13u\t--- %s\n", i->atime, filenames);
@@ -533,7 +531,6 @@ void printInode(struct inode *i){
    for (i2 = 0; i2 < DIRECT_ZONES; i2++){
       printf("              zone[%d]   = %10u\n", i2, i->zone[i2]);
    }
-
    printf("  unsigned long indirect  %10u\n", i->indirect);
    printf("  unsigned long double  %12u\n", i->two_indirect);
 }
